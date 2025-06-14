@@ -731,8 +731,8 @@ def main():
                                     key=f"chart_{i}"
                                 )
                                 
-                                with st.expander(f"💭 Why this chart? - {chart_data['title']}", expanded=False):
-                                    st.write(chart_data['reasoning'])
+                                # with st.expander(f"💭 Why this chart? - {chart_data['title']}", expanded=False):
+                                #     st.write(chart_data['reasoning'])
                         
                         else:
                             st.warning("No charts were generated. Please check your data format.")
