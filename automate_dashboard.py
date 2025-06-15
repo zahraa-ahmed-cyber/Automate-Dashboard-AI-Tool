@@ -422,15 +422,21 @@ def create_fallback_dashboard_plan(state: DataAnalysisStateDict) -> DashboardPla
         ))
     
     if len(categorical_cols) >= 1:
-        charts.append(ChartRecommendation(
-            chart_type="bar",
-            title=f"Count by {categorical_cols[0]}",
-            x_column=categorical_cols[0],
-            y_column="",
-            aggregation="count",
-            reasoning="Bar chart for categorical analysis",
-            priority=6
-        ))
+        top_col = categorical_cols[0]
+        top_counts = df[top_col].value_counts()
+
+        # Only keep if at least one category appears more than once
+        if top_counts.iloc[0] > 1:
+            charts.append(ChartRecommendation(
+                chart_type="bar",
+                title=f"Count by {top_col}",
+                x_column=top_col,
+                y_column="",
+                aggregation="count",
+                reasoning="Bar chart for categorical analysis",
+                priority=6
+            ))
+
     
     if len(numeric_cols) >= 1:
         charts.append(ChartRecommendation(
@@ -659,9 +665,10 @@ def main():
             type=['csv', 'xlsx', 'xls'],
             help="Upload CSV, Excel, or JSON files"
         )
+        st.write("Built By Zahra Abdelkafy")
         
         if uploaded_file:
-            st.success("✅ File uploaded successfully!")
+            st.success("File uploaded successfully!")
             
             # File info
             st.info(f"**File:** {uploaded_file.name}")
@@ -671,10 +678,13 @@ def main():
         # Load data
         with st.spinner("Loading data..."):
             df = load_data_file(uploaded_file)
-        
+            if len(df) > 20000:
+                df = df.head(20000)
+                st.write("Your data file is large, so we'll analyze only the first 20,000 rows.")
+
         if df is not None:
             # Data preview
-            st.header("📊 Data Preview")
+            st.header("Data Preview")
             col1, col2, col3 = st.columns(3)
             
             with col1:
@@ -688,9 +698,9 @@ def main():
                 st.dataframe(df.head(100), use_container_width=True)
             
             # Generate dashboard
-            if st.button("🚀 Generate Smart Dashboard", type="primary", use_container_width=True):
+            if st.button("Generate Smart Dashboard", type="primary", use_container_width=True):
                 
-                with st.spinner("🤖 AI is analyzing your data and creating intelligent visualizations..."):
+                with st.spinner("AI is analyzing your data and creating intelligent visualizations..."):
                     
                     # Initialize state
                     state = create_initial_state()
@@ -708,17 +718,17 @@ def main():
                             return
                         
                         # Display results
-                        st.header("🎯 AI-Generated Dashboard")
+                        st.header("AI-Generated Dashboard")
                         
                         # Key insights
                         if result["dashboard_plan"] and result["dashboard_plan"].key_insights:
-                            st.subheader("💡 Key Insights")
+                            st.subheader("Key Insights")
                             for insight in result["dashboard_plan"].key_insights:
                                 st.info(f"• {insight}")
                         
                         # Display charts
                         if result["charts"]:
-                            st.subheader("📈 Intelligent Visualizations")
+                            st.subheader("Intelligent Visualizations")
                             
                             # Sort charts by priority
                             sorted_charts = sorted(result["charts"], key=lambda x: x['priority'], reverse=True)
