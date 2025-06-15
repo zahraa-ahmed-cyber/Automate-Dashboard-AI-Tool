@@ -678,8 +678,8 @@ def main():
         # Load data
         with st.spinner("Loading data..."):
             df = load_data_file(uploaded_file)
-            if len(df) > 20000:
-                df = df.head(20000)
+            if len(df) > 50000:
+                df = df.head(50000)
                 st.write("Your data file is large, so we'll analyze only the first 20,000 rows.")
 
         if df is not None:
