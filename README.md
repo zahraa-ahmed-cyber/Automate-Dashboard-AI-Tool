@@ -1,5 +1,7 @@
 Smart Automated Dashboard Generator AI Tool
 
+Link to the deployed project : https://automated-dashboard-ai-tool.streamlit.app/
+
 An intelligent, AI-powered dashboard generator that automatically analyzes your data and creates meaningful visualizations using LangGraph workflow orchestration and large language models.
 
 Features
