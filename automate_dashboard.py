@@ -424,7 +424,7 @@ def create_fallback_dashboard_plan(state: DataAnalysisStateDict) -> DashboardPla
     if len(categorical_cols) >= 1:
         top_col = categorical_cols[0]
         top_counts = df[top_col].value_counts()
-
+        # nlargest
         # Only keep if at least one category appears more than once
         if top_counts.iloc[0] > 1:
             charts.append(ChartRecommendation(
@@ -475,6 +475,35 @@ def create_visualizations(state: DataAnalysisStateDict) -> DataAnalysisStateDict
     state["charts"] = charts
     return state
 
+
+def parse_currency_to_numeric(series):
+    """Convert currency strings like '$1.1B', '$500M' to numeric values"""
+    def convert_value(val):
+        if pd.isna(val) or val == '' or val == '$0':
+            return 0
+        
+        # Convert to string and clean
+        val_str = str(val).upper().replace('$', '').replace(',', '')
+        
+        try:
+            # Handle billions
+            if 'B' in val_str:
+                return float(val_str.replace('B', '')) * 1_000_000_000
+            # Handle millions
+            elif 'M' in val_str:
+                return float(val_str.replace('M', '')) * 1_000_000
+            # Handle thousands
+            elif 'K' in val_str:
+                return float(val_str.replace('K', '')) * 1_000
+            # Handle regular numbers
+            else:
+                return float(val_str)
+        except:
+            return 0
+    
+    return series.apply(convert_value)
+
+
 def create_single_chart(df: pd.DataFrame, chart_rec: ChartRecommendation) -> Optional[ChartDict]:
     """Create a single chart based on recommendation"""
     try:
@@ -502,6 +531,7 @@ def create_single_chart(df: pd.DataFrame, chart_rec: ChartRecommendation) -> Opt
             )
         
         elif chart_type == "bar":
+            
             if chart_rec.aggregation == "count" or not chart_rec.y_column:
                 fig = px.histogram(
                     df, 
@@ -510,17 +540,20 @@ def create_single_chart(df: pd.DataFrame, chart_rec: ChartRecommendation) -> Opt
                     template="plotly_white"
                 )
             else:
-                # Group and aggregate data for bar chart
                 try:
-                    if chart_rec.aggregation == "sum":
-                        agg_data = df.groupby(chart_rec.x_column)[chart_rec.y_column].sum().reset_index()
-                    elif chart_rec.aggregation == "mean":
-                        agg_data = df.groupby(chart_rec.x_column)[chart_rec.y_column].mean().reset_index()
-                    else:
-                        agg_data = df.groupby(chart_rec.x_column)[chart_rec.y_column].sum().reset_index()
+                    df_clean = df.copy()
+                    df_clean[chart_rec.y_column] = parse_currency_to_numeric(df_clean[chart_rec.y_column])
                     
-                    # Limit to top 20 categories for readability
-                    agg_data = agg_data.nlargest(20, chart_rec.y_column)
+                    # Perform aggregation on properly converted numeric data
+                    if chart_rec.aggregation == "sum":
+                        agg_data = df_clean.groupby(chart_rec.x_column)[chart_rec.y_column].sum().reset_index()
+                    elif chart_rec.aggregation == "mean":
+                        agg_data = df_clean.groupby(chart_rec.x_column)[chart_rec.y_column].mean().reset_index()
+                    else:
+                        agg_data = df_clean.groupby(chart_rec.x_column)[chart_rec.y_column].sum().reset_index()
+                    
+                    # Now you can safely use nlargest
+                    agg_data = agg_data.nlargest(15, chart_rec.y_column)
                     
                     fig = px.bar(
                         agg_data, 
